@@ -1,27 +1,42 @@
 package com.lyadov.slider;
 
 import com.lyadov.slider.model.SliderModel;
+import javafx.animation.Animation;
 import javafx.animation.Animation.Status;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.io.File;
 
 public class SliderModelTest {
-    static File testDirectory = new File("src/test/resources/directory-with-jpeg-images");
-    static File otherTestDirectory = new File("src/test/resources/directory-with-different-file-types");
+    static File directory = new File("src/test/resources/directory-with-jpeg-images");
+    static File otherDirectory = new File("src/test/resources/directory-with-different-file-types");
+    static File emptyDirectory = new File("src/test/resources/empty-directory");
 
-    SliderModel model;
-
-    @BeforeEach
-    void initModel() {
-        model = SliderModel.fromImageDirectory(testDirectory);
+    @Test
+    void shouldHaveZeroPositionWithEmptyDirectory() {
+        SliderModel model = new SliderModel(emptyDirectory);
+        Assertions.assertEquals(0, model.getPositionProperty().get().getCurrent());
+        Assertions.assertEquals(0, model.getPositionProperty().get().getTotal());
     }
 
     @Test
-    void testStatusProperty() {
+    void shouldNotSwitchStateOnPlayPauseToggleWithEmptyDirectory() {
+        SliderModel model = new SliderModel(emptyDirectory);
+
+        model.playPauseToggle();
         Assertions.assertEquals(Status.STOPPED, model.getStatusProperty().get());
+    }
+
+    @Test
+    void shouldBeStoppedAfterCreation() {
+        SliderModel model = new SliderModel(directory);
+        Assertions.assertEquals(Animation.Status.STOPPED, model.getStatusProperty().get());
+    }
+
+    @Test
+    void shouldSwitchStateOnPlayPauseToggle() {
+        SliderModel model = new SliderModel(directory);
 
         model.playPauseToggle();
         Assertions.assertEquals(Status.RUNNING, model.getStatusProperty().get());
@@ -29,27 +44,22 @@ public class SliderModelTest {
         model.playPauseToggle();
         Assertions.assertEquals(Status.PAUSED, model.getStatusProperty().get());
 
+        model.playPauseToggle();
+        Assertions.assertEquals(Status.RUNNING, model.getStatusProperty().get());
+    }
+
+    @Test
+    void stopShouldSwitchStatusToStopped() {
+        SliderModel model = new SliderModel(directory);
+
+        model.playPauseToggle();
         model.stop();
         Assertions.assertEquals(Status.STOPPED, model.getStatusProperty().get());
     }
 
     @Test
-    void testSetImageDirectory() {
-        model.playPauseToggle();
-        model.loadNextImage();
-
-        model.setImageDirectory(otherTestDirectory);
-        Assertions.assertEquals(
-                "directory-with-different-file-types",
-                model.getImageDirectoryNameProperty().get()
-        );
-        Assertions.assertEquals(Status.STOPPED, model.getStatusProperty().get());
-        Assertions.assertEquals(3, model.getPositionProperty().get().getTotal());
-        Assertions.assertEquals(1, model.getPositionProperty().get().getCurrent());
-    }
-
-    @Test
-    void testImageDirectoryNameProperty() {
+    void hasProperImageDirectoryNameProperty() {
+        SliderModel model = new SliderModel(directory);
         Assertions.assertEquals(
                 "directory-with-jpeg-images",
                 model.getImageDirectoryNameProperty().get()
@@ -57,49 +67,84 @@ public class SliderModelTest {
     }
 
     @Test
-    void testCurrentImageNameProperty() {
-        Assertions.assertEquals("bishop.jpeg", model.getCurrentImageNameProperty().get());
+    void shouldBeStoppedWhenDirectoryIsChanged() {
+        SliderModel model = new SliderModel(directory);
 
+        model.playPauseToggle();
         model.loadNextImage();
-        Assertions.assertEquals("knight.jpg", model.getCurrentImageNameProperty().get());
+        model.setImageDirectory(otherDirectory);
+        Assertions.assertEquals(Status.STOPPED, model.getStatusProperty().get());
     }
 
     @Test
-    void testPositionProperty() {
-        Assertions.assertEquals(4, model.getPositionProperty().get().getTotal());
-        Assertions.assertEquals(1, model.getPositionProperty().get().getCurrent());
+    void shouldLoadImagesFromNewDirectoryWhenDirectoryIsChanged() {
+        SliderModel model = new SliderModel(directory);
+
+        model.loadNextImage();
+        model.setImageDirectory(otherDirectory);
+        Assertions.assertEquals("bishop.jpeg", model.getCurrentImageNameProperty().get());
+    }
+
+    @Test
+    void shouldChangeDirectoryNamePropertyWhenDirectoryIsChanged() {
+        SliderModel model = new SliderModel(directory);
+        Assertions.assertEquals(
+                "directory-with-jpeg-images",
+                model.getImageDirectoryNameProperty().get()
+        );
+
+        model.setImageDirectory(otherDirectory);
+        Assertions.assertEquals(
+                "directory-with-different-file-types",
+                model.getImageDirectoryNameProperty().get()
+        );
+    }
+
+    @Test
+    void shouldChangeCurrentImageNamePropertyWhenLoadNext() {
+        SliderModel model = new SliderModel(directory);
+        Assertions.assertEquals("knight.jpg", model.getCurrentImageNameProperty().get());
+
+        model.loadNextImage();
+        Assertions.assertEquals("prize.jpg", model.getCurrentImageNameProperty().get());
+    }
+
+    @Test
+    void shouldChangePositionWhenLoadNext() {
+        SliderModel model = new SliderModel(directory);
 
         model.loadNextImage();
         Assertions.assertEquals(2, model.getPositionProperty().get().getCurrent());
+
+        model.loadNextImage();
+        Assertions.assertEquals(3, model.getPositionProperty().get().getCurrent());
     }
 
     @Test
-    void testRestart() {
+    void hasProperTotalInPosition() {
+        SliderModel model = new SliderModel(directory);
+        Assertions.assertEquals(3, model.getPositionProperty().get().getTotal());
+    }
+
+    @Test
+    void shouldBeStoppedAfterRestart() {
+        SliderModel model = new SliderModel(directory);
+
         model.playPauseToggle();
         model.loadNextImage();
         model.restart();
 
         Assertions.assertEquals(Status.STOPPED, model.getStatusProperty().get());
+    }
+
+    @Test
+    void shouldDropPositionAfterRestart() {
+        SliderModel model = new SliderModel(directory);
+
+        model.playPauseToggle();
+        model.loadNextImage();
+        model.restart();
+
         Assertions.assertEquals(1, model.getPositionProperty().get().getCurrent());
-    }
-
-    @Test
-    void testPlayPauseToggle() {
-        model.playPauseToggle();
-        Assertions.assertEquals(Status.RUNNING, model.getStatusProperty().get());
-
-        model.playPauseToggle();
-        Assertions.assertEquals(Status.PAUSED, model.getStatusProperty().get());
-    }
-
-    @Test
-    void testLoadNextImage() {
-        model.loadNextImage();
-        Assertions.assertEquals("knight.jpg", model.getCurrentImageNameProperty().get());
-        Assertions.assertEquals(2, model.getPositionProperty().get().getCurrent());
-
-        model.loadNextImage();
-        Assertions.assertEquals("prize.jpg", model.getCurrentImageNameProperty().get());
-        Assertions.assertEquals(3, model.getPositionProperty().get().getCurrent());
     }
 }

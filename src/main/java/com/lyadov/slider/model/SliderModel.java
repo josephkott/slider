@@ -8,9 +8,10 @@ import javafx.util.Duration;
 
 import java.io.File;
 import java.util.List;
+import java.util.Objects;
 
 /**
- * Slider application model. It uses {@link SequentialImageLoader} to load next images asynchronously
+ * Slider application model. It uses {@link ImageProvider} to load next images asynchronously
  * in a background while showing the currently loaded image.
  */
 public class SliderModel {
@@ -20,7 +21,7 @@ public class SliderModel {
     private static final String EMPTY_IMAGE_NAME = "<empty>";
 
     private File imageDirectory = null;
-    private SequentialImageLoader imageLoader = null;
+    private ImageProvider imageProvider = null;
 
     /* Model binding properties */
     private final StringProperty imageDirectoryNameProperty = new SimpleStringProperty("");
@@ -29,30 +30,23 @@ public class SliderModel {
     private final ObjectProperty<Position> positionProperty = new SimpleObjectProperty<>(Position.EMPTY);
     private final ObjectProperty<Status> statusProperty = new SimpleObjectProperty<>(Status.STOPPED);
 
-    /**
-     * Creates an empty model without an image loader
-     */
-    public SliderModel() {}
-
-    public ObjectProperty<Status> getStatusProperty() {
-        return statusProperty;
-    }
-
-    public static SliderModel fromImageDirectory(File imageDirectory) {
-        SliderModel model = new SliderModel();
-        model.setImageDirectory(imageDirectory);
-        return model;
+    public SliderModel(File imageDirectory) {
+        this.setImageDirectory(imageDirectory);
     }
 
     public void setImageDirectory(File imageDirectory) {
-        this.imageDirectory = imageDirectory;
-        imageLoader = new SequentialImageLoader(FORMATS, imageDirectory);
+        this.imageDirectory = Objects.requireNonNull(imageDirectory);
+        imageProvider = new ImageProvider(FORMATS, imageDirectory);
 
         imageDirectoryNameProperty.set(imageDirectory.getName());
         statusProperty.set(Status.STOPPED);
-        positionProperty.set(imageLoader.getPosition());
+        positionProperty.set(imageProvider.getPosition());
 
         loadNextImage();
+    }
+
+    public ObjectProperty<Status> getStatusProperty() {
+        return statusProperty;
     }
 
     public StringProperty getImageDirectoryNameProperty() {
@@ -80,20 +74,16 @@ public class SliderModel {
     }
 
     public void restart() {
-        validateImageLoader();
-
         statusProperty.set(Status.STOPPED);
-        imageLoader = new SequentialImageLoader(FORMATS, imageDirectory);
-        positionProperty.set(imageLoader.getPosition());
+        imageProvider = new ImageProvider(FORMATS, imageDirectory);
+        positionProperty.set(imageProvider.getPosition());
 
         loadNextImage();
     }
 
     public void playPauseToggle() {
-        validateImageLoader();
-
         Status status = switch (statusProperty.get()) {
-            case PAUSED, STOPPED -> !imageLoader.isExhausted() ? Status.RUNNING : Status.STOPPED;
+            case PAUSED, STOPPED -> imageProvider.hasNext() ? Status.RUNNING : Status.STOPPED;
             case RUNNING -> Status.PAUSED;
         };
 
@@ -101,24 +91,16 @@ public class SliderModel {
     }
 
     public void loadNextImage() {
-        validateImageLoader();
-
-        imageLoader.load().ifPresentOrElse(
-                result -> {
-                    positionProperty.set(imageLoader.getPosition());
-                    currentImageNameProperty.set(result.getName());
-                    currentImageProperty.set(result.getImage());
+        imageProvider.load().ifPresentOrElse(
+                namedImage -> {
+                    positionProperty.set(imageProvider.getPosition());
+                    currentImageNameProperty.set(namedImage.getName());
+                    currentImageProperty.set(namedImage.getImage());
                 },
                 () -> {
                     currentImageNameProperty.set(EMPTY_IMAGE_NAME);
                     currentImageProperty.set(EMPTY_IMAGE);
                 }
         );
-    }
-
-    private void validateImageLoader() throws RuntimeException {
-        if (imageLoader == null) {
-            throw new RuntimeException("Image directory is not set");
-        }
     }
 }

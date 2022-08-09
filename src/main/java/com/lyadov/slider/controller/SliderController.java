@@ -24,8 +24,6 @@ import java.util.Objects;
 import java.util.ResourceBundle;
 
 public class SliderController implements Initializable {
-    URL DEFAULT_IMAGE_DIRECTORY = Objects.requireNonNull(getClass().getResource("/jpeg/Bruegel"));
-
     private SliderModel model;
 
     @FXML private AnchorPane pane;
@@ -78,13 +76,11 @@ public class SliderController implements Initializable {
     /**
      * Provide all necessary bindings between the view objects and the model properties.
      */
-    @Override
+    @FXML
     public void initialize(URL location, ResourceBundle resources) {
         /* Start up with default image directory for the purpose of POC */
-        model = SliderModel.fromImageDirectory(new File(DEFAULT_IMAGE_DIRECTORY.getFile()));
-
-        /* Start up with an empty model without image directory  */
-        /* model = new SliderModel(); */
+        URL defaultDirectoryUrl = Objects.requireNonNull(getClass().getResource("/jpeg/Bruegel"));
+        model = new SliderModel(new File(defaultDirectoryUrl.getFile()));
 
         initializeButtons();
         initializeImageView();

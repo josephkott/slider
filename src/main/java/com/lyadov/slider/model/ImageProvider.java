@@ -2,76 +2,66 @@ package com.lyadov.slider.model;
 
 import javafx.scene.image.Image;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
+import java.io.*;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.Executor;
-import java.util.concurrent.Executors;
+import java.util.concurrent.*;
 
 /**
  * Loads images sequentially from a given directory. Images are sorted alphabetically.
- * {@link SequentialImageLoader} uses internal buffer to load the next image asynchronously
+ * {@link ImageProvider} uses internal buffer to load the next image asynchronously
  * when the current image is accessed.
  */
-public class SequentialImageLoader {
+public class ImageProvider {
     private final File[] imageFiles;
     private int index;
 
     private final Runnable loadTask;
     private final BlockingQueue<Image> buffer = new ArrayBlockingQueue<>(1);
-    private final Executor taskExecutor = Executors.newSingleThreadExecutor(runnable -> {
-        Thread thread = new Thread(runnable);
-        thread.setDaemon(true);
-        return thread;
-    });
 
-    public SequentialImageLoader(List<String> formats, File directory) {
+    public ImageProvider(List<String> formats, File directory) {
         imageFiles = directory.listFiles(new ExtensionFileFilter(formats));
         Arrays.sort(Objects.requireNonNull(imageFiles));
 
         index = 0;
         loadTask = () -> {
-            try {
-                Image image = new Image(new FileInputStream(imageFiles[index]));
-                buffer.put(image);
-            } catch (FileNotFoundException | InterruptedException exception) {
+            try (InputStream stream = new FileInputStream(imageFiles[index])) {
+                buffer.put(new Image(stream));
+            } catch (IOException exception) {
+                throw new RuntimeException("I/O exception: " + exception.getMessage());
+            } catch (InterruptedException exception) {
                 Thread.currentThread().interrupt();
             }
         };
 
-        if (!isExhausted()) {
-            taskExecutor.execute(loadTask);
+        if (hasNext()) {
+            new Thread(loadTask).start();
         }
     }
 
     /**
      * Returns currently loaded image or {@link Optional#empty()} if there are no images left.
-     * If there is the next image to load, create a loading task to create an {@link Image}
-     * object from it.
+     * If there is the next image to load, it creates a new {@link Image} loading task.
      *
      * @return {@link Optional} describing image loading result.
      */
-    public Optional<LoadImageResult> load() {
-        if (isExhausted()) {
+    public Optional<NamedImage> load() {
+        if (!hasNext()) {
             return Optional.empty();
         }
 
         try {
+            Image image = buffer.take();
             String name = imageFiles[index].getName();
-            LoadImageResult result = new LoadImageResult(name, buffer.take());
 
             index++;
-            if (!isExhausted()) {
-                taskExecutor.execute(loadTask);
+            if (hasNext()) {
+                new Thread(loadTask).start();
             }
 
-            return Optional.of(result);
+            return Optional.of(new NamedImage(name, image));
         } catch (InterruptedException exception) {
             Thread.currentThread().interrupt();
         }
@@ -79,8 +69,8 @@ public class SequentialImageLoader {
         return Optional.empty();
     }
 
-    public boolean isExhausted() {
-        return index >= imageFiles.length;
+    public boolean hasNext() {
+        return index < imageFiles.length;
     }
 
     /**

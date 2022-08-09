@@ -4,6 +4,7 @@ import javafx.scene.control.Button;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 
+import java.net.URL;
 import java.util.Objects;
 
 /**
@@ -18,8 +19,9 @@ public class IconLoader {
     private IconLoader() {};
 
     public static ImageView getIconView(String name, Button button) {
-        Image playIcon = new Image(Objects.requireNonNull(IconLoader.class.getResourceAsStream(name)));
-        ImageView view = new ImageView(playIcon);
+        URL url = Objects.requireNonNull(IconLoader.class.getResource(name));
+        Image icon = new Image(url.toExternalForm());
+        ImageView view = new ImageView(icon);
         view.setFitWidth(button.getPrefWidth() * 0.6);
         view.setFitHeight(button.getPrefHeight() * 0.6);
         return view;

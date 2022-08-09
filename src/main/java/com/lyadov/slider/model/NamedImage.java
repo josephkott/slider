@@ -2,11 +2,14 @@ package com.lyadov.slider.model;
 
 import javafx.scene.image.Image;
 
-public class LoadImageResult {
-    String name;
-    Image image;
+/**
+ * Class represents an {@link Image} with the corresponding file name.
+ */
+public class NamedImage {
+    private final String name;
+    private final Image image;
 
-    public LoadImageResult(String name, Image image) {
+    public NamedImage(String name, Image image) {
         this.name = name;
         this.image = image;
     }

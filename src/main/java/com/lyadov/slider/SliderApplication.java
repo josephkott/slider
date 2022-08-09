@@ -26,8 +26,9 @@ public class SliderApplication extends Application {
     public void start(Stage stage) throws IOException {
         URL fxmlURL = Objects.requireNonNull(getClass().getResource("/fxml/main.fxml"));
         Parent root = FXMLLoader.load(fxmlURL);
-        Image icon = new Image(Objects.requireNonNull(
-                SliderApplication.class.getResourceAsStream(ICON)));
+
+        URL iconUrl = Objects.requireNonNull(getClass().getResource(ICON));
+        Image icon = new Image(iconUrl.toExternalForm());
 
         stage.setScene(new Scene(root));
         stage.getIcons().add(icon);
