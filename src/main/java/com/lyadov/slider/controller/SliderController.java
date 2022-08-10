@@ -40,7 +40,6 @@ public class SliderController implements Initializable {
     @FXML
     public void paneKeyPressedEventHandler(KeyEvent event) {
         switch (event.getCode()) {
-            case ESCAPE -> ((Stage) pane.getScene().getWindow()).close();
             case SHIFT -> {
                 model.pause();
                 Position position = model.getPositionProperty().get();
@@ -48,6 +47,8 @@ public class SliderController implements Initializable {
                     model.loadNextImage();
                 }
             }
+
+            case ESCAPE -> ((Stage) pane.getScene().getWindow()).close();
         }
     }
 
