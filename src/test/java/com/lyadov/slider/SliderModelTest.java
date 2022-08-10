@@ -147,4 +147,16 @@ public class SliderModelTest {
 
         Assertions.assertEquals(1, model.getPositionProperty().get().getCurrent());
     }
+
+    @Test
+    void shouldBeStoppedWhenNoImagesLeft() {
+        SliderModel model = new SliderModel(directory);
+        model.playPauseToggle();
+
+        for (int i = 0; i < 3; i++) {
+            model.loadNextImage();
+        }
+
+        Assertions.assertEquals(Status.STOPPED, model.getStatusProperty().get());
+    }
 }

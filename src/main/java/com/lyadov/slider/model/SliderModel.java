@@ -102,5 +102,9 @@ public class SliderModel {
                     currentImageProperty.set(EMPTY_IMAGE);
                 }
         );
+
+        if (!imageProvider.hasNext()) {
+            stop();
+        }
     }
 }

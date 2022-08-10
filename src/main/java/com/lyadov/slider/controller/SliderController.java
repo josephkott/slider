@@ -3,6 +3,7 @@ package com.lyadov.slider.controller;
 import com.lyadov.slider.model.Position;
 import com.lyadov.slider.model.SliderModel;
 import com.lyadov.slider.view.IconLoader;
+import javafx.animation.Animation;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
 import javafx.beans.binding.*;
@@ -172,14 +173,7 @@ public class SliderController implements Initializable {
     private void initializeSlideshowTimeline() {
         KeyFrame switchImage = new KeyFrame(SliderModel.DELAY, event -> model.loadNextImage());
         Timeline timeline = new Timeline(switchImage);
-
-        IntegerBinding cycleCountPropertyBinding = Bindings.createIntegerBinding(
-                () -> model.getPositionProperty().get().getTotal() - 1,
-                model.getPositionProperty()
-        );
-
-        timeline.cycleCountProperty().bind(cycleCountPropertyBinding);
-        timeline.setOnFinished(event -> model.stop());
+        timeline.setCycleCount(Animation.INDEFINITE);
 
         model.getStatusProperty().addListener((observable, oldStatus, newStatus) -> {
             switch (newStatus) {
